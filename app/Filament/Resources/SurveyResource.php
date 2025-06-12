@@ -10,14 +10,11 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class SurveyResource extends Resource
 {
     protected static ?string $model = Survey::class;
-
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-list';
 
     public static function form(Form $form): Form
     {
@@ -25,13 +22,18 @@ class SurveyResource extends Resource
             ->schema([
                 Forms\Components\TextInput::make('title')
                     ->required()
-                    ->maxLength(255),
+                    ->maxLength(255)
+                    ->columnSpanFull(),
                 Forms\Components\Textarea::make('description')
                     ->columnSpanFull(),
                 Forms\Components\Toggle::make('is_active')
+                    ->label('Active for Voting')
+                    ->default(true)
                     ->required(),
                 Forms\Components\TextInput::make('max_votes')
-                    ->numeric(),
+                    ->label('Vote Limit')
+                    ->numeric()
+                    ->helperText('The survey will automatically close after this many votes. Leave empty for no limit.'),
             ]);
     }
 
@@ -39,25 +41,13 @@ class SurveyResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('title')
-                    ->searchable(),
-                Tables\Columns\IconColumn::make('is_active')
-                    ->boolean(),
-                Tables\Columns\TextColumn::make('max_votes')
-                    ->numeric()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('updated_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('title')->searchable()->sortable(),
+                Tables\Columns\IconColumn::make('is_active')->boolean()->label('Active'),
+                Tables\Columns\TextColumn::make('max_votes')->label('Vote Limit'),
+                Tables\Columns\TextColumn::make('questions_count')->counts('questions')->label('Questions'),
+                Tables\Columns\TextColumn::make('created_at')->dateTime()->sortable()->toggleable(isToggledHiddenByDefault: true),
             ])
-            ->filters([
-                //
-            ])
+            ->defaultSort('created_at', 'desc')
             ->actions([
                 Tables\Actions\EditAction::make(),
             ])
@@ -71,7 +61,7 @@ class SurveyResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            RelationManagers\QuestionsRelationManager::class,
         ];
     }
 
