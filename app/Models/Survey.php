@@ -4,9 +4,22 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Survey extends Model
 {
     /** @use HasFactory<\Database\Factories\SurveyFactory> */
     use HasFactory;
+    protected $guarded = [];
+
+    public function questions(): HasMany
+    {
+        return $this->hasMany(Question::class)->orderBy('order_column');
+    }
+
+    public function votes(): HasMany
+    {
+        return $this->hasMany(Vote::class);
+    }
 }
+
