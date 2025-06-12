@@ -1,5 +1,5 @@
 <div class="min-h-screen bg-gradient-to-br from-gray-900 via-slate-900 to-indigo-950 py-12 flex flex-col items-center">
-    <div class="container mx-auto px-4 py-8">
+    <div class="container mx-auto px-4 py-8 w-full">
         <h1 class="text-4xl md:text-5xl font-extrabold mb-12 text-center bg-gradient-to-r from-cyan-400 via-blue-500 to-fuchsia-500 bg-clip-text text-transparent drop-shadow-lg tracking-tight">
             Encuestas activas
         </h1>
