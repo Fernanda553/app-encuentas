@@ -10,14 +10,12 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class QuestionResource extends Resource
 {
     protected static ?string $model = Question::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-question-mark-circle';
 
     public static function form(Form $form): Form
     {
@@ -28,13 +26,17 @@ class QuestionResource extends Resource
                     ->required(),
                 Forms\Components\TextInput::make('text')
                     ->required()
-                    ->maxLength(255),
-                Forms\Components\TextInput::make('type')
-                    ->required()
                     ->maxLength(255)
+                    ->columnSpanFull(),
+                Forms\Components\Select::make('type')
+                    ->options([
+                        'single' => 'Single Choice',
+                        'multiple' => 'Multiple Choice',
+                    ])
+                    ->required()
                     ->default('single'),
                 Forms\Components\TextInput::make('order_column')
-                    ->required()
+                    ->label('Order')
                     ->numeric()
                     ->default(0),
             ]);
@@ -45,29 +47,29 @@ class QuestionResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('survey.title')
-                    ->numeric()
+                    ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('text')
-                    ->searchable(),
+                    ->searchable()
+                    ->limit(50),
                 Tables\Columns\TextColumn::make('type')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('order_column')
-                    ->numeric()
-                    ->sortable(),
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'single' => 'success',
+                        'multiple' => 'warning',
+                    }),
+                Tables\Columns\TextColumn::make('answers_count')
+                    ->counts('answers')
+                    ->label('Answers'),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('updated_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
             ])
-            ->filters([
-                //
-            ])
+            ->defaultSort('created_at', 'desc')
             ->actions([
                 Tables\Actions\EditAction::make(),
+                Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -79,7 +81,7 @@ class QuestionResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            RelationManagers\AnswersRelationManager::class,
         ];
     }
 

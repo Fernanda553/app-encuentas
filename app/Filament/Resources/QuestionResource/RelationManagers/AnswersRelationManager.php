@@ -1,16 +1,18 @@
 <?php
 
-namespace App\Filament\Resources\SurveyResource\RelationManagers;
+namespace App\Filament\Resources\QuestionResource\RelationManagers;
 
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\SoftDeletingScope;
 
-class QuestionsRelationManager extends RelationManager
+class AnswersRelationManager extends RelationManager
 {
-    protected static string $relationship = 'questions';
+    protected static string $relationship = 'answers';
 
     public function form(Form $form): Form
     {
@@ -20,13 +22,6 @@ class QuestionsRelationManager extends RelationManager
                     ->required()
                     ->maxLength(255)
                     ->columnSpanFull(),
-                Forms\Components\Select::make('type')
-                    ->options([
-                        'single' => 'Single Choice',
-                        'multiple' => 'Multiple Choice',
-                    ])
-                    ->default('single')
-                    ->required(),
                 Forms\Components\TextInput::make('order_column')
                     ->label('Order')
                     ->numeric()
@@ -41,7 +36,9 @@ class QuestionsRelationManager extends RelationManager
             ->recordTitleAttribute('text')
             ->columns([
                 Tables\Columns\TextColumn::make('text'),
-                Tables\Columns\TextColumn::make('type'),
+                Tables\Columns\TextColumn::make('votes_count')
+                    ->label('Votes')
+                    ->counts('votes'),
             ])
             ->headerActions([
                 Tables\Actions\CreateAction::make(),
@@ -49,9 +46,6 @@ class QuestionsRelationManager extends RelationManager
             ->actions([
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
-                Tables\Actions\Action::make('Manage Answers')
-                    ->url(fn ($record): string => url("/admin/questions/{$record->id}/edit"))
-                    ->icon('heroicon-o-list-bullet'),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
