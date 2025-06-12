@@ -12,23 +12,23 @@ class QuestionsRelationManager extends RelationManager
 {
     protected static string $relationship = 'questions';
 
-    protected static ?string $recordTitleAttribute = 'text';
-
     public function form(Form $form): Form
     {
         return $form
             ->schema([
                 Forms\Components\TextInput::make('text')
                     ->required()
-                    ->maxLength(255),
+                    ->maxLength(255)
+                    ->columnSpanFull(),
                 Forms\Components\Select::make('type')
                     ->options([
                         'single' => 'Single Choice',
                         'multiple' => 'Multiple Choice',
                     ])
-                    ->required()
-                    ->default('single'),
+                    ->default('single')
+                    ->required(),
                 Forms\Components\TextInput::make('order_column')
+                    ->label('Order')
                     ->numeric()
                     ->default(0),
             ]);
@@ -37,27 +37,21 @@ class QuestionsRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
-            ->columns([
-                Tables\Columns\TextColumn::make('text')
-                    ->searchable()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('type')
-                    ->badge()
-                    ->color(fn (string $state): string => match ($state) {
-                        'single' => 'success',
-                        'multiple' => 'warning',
-                    }),
-                Tables\Columns\TextColumn::make('answers_count')
-                    ->counts('answers')
-                    ->label('Answers'),
-                Tables\Columns\TextColumn::make('order_column')
-                    ->sortable(),
-            ])
-            ->defaultSort('order_column')
             ->reorderable('order_column')
+            ->recordTitleAttribute('text')
+            ->columns([
+                Tables\Columns\TextColumn::make('text'),
+                Tables\Columns\TextColumn::make('type'),
+            ])
+            ->headerActions([
+                Tables\Actions\CreateAction::make(),
+            ])
             ->actions([
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
+                Tables\Actions\Action::make('Manage Answers')
+                    ->url(fn ($record): string => url("/admin/questions/{$record->id}/edit"))
+                    ->icon('heroicon-o-list-bullet'),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
