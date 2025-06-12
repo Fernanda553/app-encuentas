@@ -6,26 +6,24 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('questions', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('survey_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('survey_id')->constrained()->onDelete('cascade');
             $table->string('text');
-            $table->enum('type', ['single', 'multiple'])->default('single');
-            $table->integer('order_column')->default(0);
+            $table->boolean('is_required')->default(false);
+            $table->boolean('allow_multiple_answers')->default(false);
+            $table->integer('order')->default(0);
+            $table->string('type')->default('single'); // single, multiple
             $table->timestamps();
+
+            $table->index(['survey_id', 'order']);
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('questions');
     }
-};
+}; 

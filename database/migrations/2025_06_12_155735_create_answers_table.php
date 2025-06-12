@@ -6,26 +6,22 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('answers', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('question_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('question_id')->constrained()->onDelete('cascade');
             $table->string('text');
-            $table->unsignedBigInteger('votes_count')->default(0);
-            $table->integer('order_column')->default(0);
+            $table->integer('order')->default(0);
+            $table->integer('vote_count')->default(0);
             $table->timestamps();
+
+            $table->index(['question_id', 'order']);
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('answers');
     }
-};
+}; 

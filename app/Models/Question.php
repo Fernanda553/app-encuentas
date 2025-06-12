@@ -9,9 +9,22 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Question extends Model
 {
-    /** @use HasFactory<\Database\Factories\QuestionFactory> */
     use HasFactory;
-    protected $guarded = [];
+
+    protected $fillable = [
+        'text',
+        'survey_id',
+        'is_required',
+        'allow_multiple_answers',
+        'order',
+        'type',
+    ];
+
+    protected $casts = [
+        'is_required' => 'boolean',
+        'allow_multiple_answers' => 'boolean',
+        'order' => 'integer',
+    ];
 
     public function survey(): BelongsTo
     {
@@ -20,6 +33,16 @@ class Question extends Model
 
     public function answers(): HasMany
     {
-        return $this->hasMany(Answer::class)->orderBy('order_column');
+        return $this->hasMany(Answer::class)->orderBy('order');
     }
-}
+
+    public function isMultipleChoice(): bool
+    {
+        return $this->type === 'multiple' || $this->allow_multiple_answers;
+    }
+
+    public function getTotalVotes(): int
+    {
+        return $this->answers()->sum('vote_count');
+    }
+} 

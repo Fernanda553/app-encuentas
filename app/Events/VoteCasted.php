@@ -2,30 +2,39 @@
 
 namespace App\Events;
 
-use App\Models\Survey;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
-use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
+use Illuminate\Broadcasting\PresenceChannel;
+use Illuminate\Broadcasting\PrivateChannel;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class VoteCasted implements ShouldBroadcastNow
+class VoteCasted implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
-    public function __construct(
-        public Survey $survey
-    ) {}
+    public $surveyId;
+    public $results;
 
-    public function broadcastOn(): array
+    public function __construct($surveyId, $results = [])
     {
-        return [
-            new Channel('survey.' . $this->survey->id),
-        ];
+        $this->surveyId = $surveyId;
+        $this->results = $results;
     }
 
-    public function broadcastWith(): array
+    public function broadcastOn()
     {
-        return ['survey' => $this->survey->toArray()];
+        return new Channel('survey.' . $this->surveyId);
     }
-}
+
+    public function broadcastAs()
+    {
+        return 'VoteCasted';
+    }
+
+    public function broadcastWith()
+    {
+        return $this->results;
+    }
+} 

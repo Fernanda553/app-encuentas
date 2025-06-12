@@ -3,37 +3,97 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\SurveyResource\Pages;
-use App\Filament\Resources\SurveyResource\RelationManagers;
 use App\Models\Survey;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class SurveyResource extends Resource
 {
     protected static ?string $model = Survey::class;
+
     protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-list';
+
+    protected static ?string $navigationGroup = 'Encuestas';
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                Forms\Components\TextInput::make('title')
-                    ->required()
-                    ->maxLength(255)
-                    ->columnSpanFull(),
-                Forms\Components\Textarea::make('description')
-                    ->columnSpanFull(),
-                Forms\Components\Toggle::make('is_active')
-                    ->label('Active for Voting')
-                    ->default(true)
-                    ->required(),
-                Forms\Components\TextInput::make('max_votes')
-                    ->label('Vote Limit')
-                    ->numeric()
-                    ->helperText('The survey will automatically close after this many votes. Leave empty for no limit.'),
+                Forms\Components\Section::make('Información Básica')
+                    ->schema([
+                        Forms\Components\TextInput::make('title')
+                            ->required()
+                            ->maxLength(255)
+                            ->label('Título'),
+                        Forms\Components\TextInput::make('description')
+                            ->maxLength(255)
+                            ->label('Descripción'),
+                    ])->columns(2),
+
+                Forms\Components\Section::make('Configuración')
+                    ->schema([
+                        Forms\Components\Toggle::make('is_active')
+                            ->required()
+                            ->label('Activa'),
+                        Forms\Components\DateTimePicker::make('start_date')
+                            ->required()
+                            ->label('Fecha de Inicio'),
+                        Forms\Components\DateTimePicker::make('end_date')
+                            ->required()
+                            ->label('Fecha de Fin'),
+                        Forms\Components\TextInput::make('max_votes')
+                            ->numeric()
+                            ->minValue(1)
+                            ->label('Límite de Votos')
+                            ->helperText('Dejar en blanco para sin límite'),
+                    ])->columns(2),
+
+                Forms\Components\Section::make('Preguntas')
+                    ->schema([
+                        Forms\Components\Repeater::make('questions')
+                            ->relationship()
+                            ->schema([
+                                Forms\Components\TextInput::make('text')
+                                    ->required()
+                                    ->maxLength(255)
+                                    ->label('Pregunta'),
+                                Forms\Components\Select::make('type')
+                                    ->options([
+                                        'single' => 'Opción Única',
+                                        'multiple' => 'Opción Múltiple',
+                                    ])
+                                    ->required()
+                                    ->default('single')
+                                    ->label('Tipo'),
+                                Forms\Components\Toggle::make('is_required')
+                                    ->required()
+                                    ->label('Obligatoria'),
+                                Forms\Components\TextInput::make('order')
+                                    ->numeric()
+                                    ->default(0)
+                                    ->label('Orden'),
+                                Forms\Components\Repeater::make('answers')
+                                    ->relationship()
+                                    ->schema([
+                                        Forms\Components\TextInput::make('text')
+                                            ->required()
+                                            ->maxLength(255)
+                                            ->label('Respuesta'),
+                                        Forms\Components\TextInput::make('order')
+                                            ->numeric()
+                                            ->default(0)
+                                            ->label('Orden'),
+                                    ])
+                                    ->columns(2)
+                                    ->label('Respuestas'),
+                            ])
+                            ->columns(2)
+                            ->label('Preguntas'),
+                    ]),
             ]);
     }
 
@@ -41,15 +101,58 @@ class SurveyResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('title')->searchable()->sortable(),
-                Tables\Columns\IconColumn::make('is_active')->boolean()->label('Active'),
-                Tables\Columns\TextColumn::make('max_votes')->label('Vote Limit'),
-                Tables\Columns\TextColumn::make('questions_count')->counts('questions')->label('Questions'),
-                Tables\Columns\TextColumn::make('created_at')->dateTime()->sortable()->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('title')
+                    ->searchable()
+                    ->sortable()
+                    ->label('Título'),
+                Tables\Columns\TextColumn::make('description')
+                    ->searchable()
+                    ->label('Descripción'),
+                Tables\Columns\IconColumn::make('is_active')
+                    ->boolean()
+                    ->label('Activa'),
+                Tables\Columns\TextColumn::make('start_date')
+                    ->dateTime()
+                    ->sortable()
+                    ->label('Inicio'),
+                Tables\Columns\TextColumn::make('end_date')
+                    ->dateTime()
+                    ->sortable()
+                    ->label('Fin'),
+                Tables\Columns\TextColumn::make('total_votes')
+                    ->numeric()
+                    ->sortable()
+                    ->label('Votos'),
+                Tables\Columns\TextColumn::make('max_votes')
+                    ->numeric()
+                    ->sortable()
+                    ->label('Límite'),
             ])
-            ->defaultSort('created_at', 'desc')
+            ->filters([
+                Tables\Filters\SelectFilter::make('status')
+                    ->options([
+                        'active' => 'Activas',
+                        'inactive' => 'Inactivas',
+                        'expired' => 'Expiradas',
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return match ($data['value']) {
+                            'active' => $query->where('is_active', true)
+                                ->where('start_date', '<=', now())
+                                ->where('end_date', '>=', now()),
+                            'inactive' => $query->where('is_active', false),
+                            'expired' => $query->where('end_date', '<', now()),
+                            default => $query,
+                        };
+                    }),
+            ])
             ->actions([
                 Tables\Actions\EditAction::make(),
+                Tables\Actions\Action::make('results')
+                    ->url(fn (Survey $record): string => route('survey.results', ['survey' => $record]))
+                    ->icon('heroicon-o-chart-bar')
+                    ->label('Resultados')
+                    ->openUrlInNewTab(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -61,7 +164,7 @@ class SurveyResource extends Resource
     public static function getRelations(): array
     {
         return [
-            RelationManagers\QuestionsRelationManager::class,
+            //
         ];
     }
 
@@ -73,4 +176,4 @@ class SurveyResource extends Resource
             'edit' => Pages\EditSurvey::route('/{record}/edit'),
         ];
     }
-}
+} 

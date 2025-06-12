@@ -6,26 +6,25 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('surveys', function (Blueprint $table) {
             $table->id();
             $table->string('title');
-            $table->text('description')->nullable();
+            $table->string('description')->nullable();
             $table->boolean('is_active')->default(true);
-            $table->unsignedInteger('max_votes')->nullable()->comment('Survey closes after this many votes');
+            $table->timestamp('start_date');
+            $table->timestamp('end_date');
+            $table->integer('max_votes')->nullable();
+            $table->integer('total_votes')->default(0);
             $table->timestamps();
+
+            $table->index(['is_active', 'start_date', 'end_date']);
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('surveys');
     }
-};
+}; 

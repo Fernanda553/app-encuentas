@@ -3,7 +3,6 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\QuestionResource\Pages;
-use App\Filament\Resources\QuestionResource\RelationManagers;
 use App\Models\Question;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -21,24 +20,16 @@ class QuestionResource extends Resource
     {
         return $form
             ->schema([
+                Forms\Components\TextInput::make('text')
+                    ->required()
+                    ->maxLength(255),
                 Forms\Components\Select::make('survey_id')
                     ->relationship('survey', 'title')
                     ->required(),
-                Forms\Components\TextInput::make('text')
-                    ->required()
-                    ->maxLength(255)
-                    ->columnSpanFull(),
-                Forms\Components\Select::make('type')
-                    ->options([
-                        'single' => 'Single Choice',
-                        'multiple' => 'Multiple Choice',
-                    ])
-                    ->required()
-                    ->default('single'),
-                Forms\Components\TextInput::make('order_column')
-                    ->label('Order')
-                    ->numeric()
-                    ->default(0),
+                Forms\Components\Toggle::make('is_required')
+                    ->required(),
+                Forms\Components\Toggle::make('allow_multiple_answers')
+                    ->required(),
             ]);
     }
 
@@ -46,30 +37,28 @@ class QuestionResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('survey.title')
-                    ->searchable()
-                    ->sortable(),
                 Tables\Columns\TextColumn::make('text')
-                    ->searchable()
-                    ->limit(50),
-                Tables\Columns\TextColumn::make('type')
-                    ->badge()
-                    ->color(fn (string $state): string => match ($state) {
-                        'single' => 'success',
-                        'multiple' => 'warning',
-                    }),
-                Tables\Columns\TextColumn::make('answers_count')
-                    ->counts('answers')
-                    ->label('Answers'),
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('survey.title')
+                    ->sortable(),
+                Tables\Columns\IconColumn::make('is_required')
+                    ->boolean(),
+                Tables\Columns\IconColumn::make('allow_multiple_answers')
+                    ->boolean(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('updated_at')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
-            ->defaultSort('created_at', 'desc')
+            ->filters([
+                //
+            ])
             ->actions([
                 Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -81,7 +70,7 @@ class QuestionResource extends Resource
     public static function getRelations(): array
     {
         return [
-            RelationManagers\AnswersRelationManager::class,
+            //
         ];
     }
 
@@ -93,4 +82,4 @@ class QuestionResource extends Resource
             'edit' => Pages\EditQuestion::route('/{record}/edit'),
         ];
     }
-}
+} 
