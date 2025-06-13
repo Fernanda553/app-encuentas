@@ -27,11 +27,15 @@ class SurveyResource extends Resource
                     ->schema([
                         Forms\Components\TextInput::make('title')
                             ->required()
+                            ->minLength(3)
                             ->maxLength(255)
-                            ->label('Título'),
+                            ->label('Título')
+                            ->helperText('Mínimo 3 caracteres'),
                         Forms\Components\TextInput::make('description')
+                            ->minLength(3)
                             ->maxLength(255)
-                            ->label('Descripción'),
+                            ->label('Descripción')
+                            ->helperText('Mínimo 3 caracteres'),
                     ])->columns(2),
 
                 Forms\Components\Section::make('Configuración')
@@ -39,12 +43,30 @@ class SurveyResource extends Resource
                         Forms\Components\Toggle::make('is_active')
                             ->required()
                             ->label('Activa'),
-                        Forms\Components\DateTimePicker::make('start_date')
+                                                                                                Forms\Components\DatePicker::make('start_date')
                             ->required()
-                            ->label('Fecha de Inicio'),
-                        Forms\Components\DateTimePicker::make('end_date')
+                            ->label('Fecha de Inicio')
+                            ->minDate(today())
+                            ->native(false)
+                            ->displayFormat('d/m/Y')
+                            ->helperText('La fecha de inicio no puede ser anterior a la actual'),
+                        Forms\Components\DatePicker::make('end_date')
                             ->required()
-                            ->label('Fecha de Fin'),
+                            ->label('Fecha de Fin')
+                            ->minDate(today())
+                            ->native(false)
+                            ->displayFormat('d/m/Y')
+                            ->rules([
+                                function (Forms\Get $get) {
+                                    return function (string $attribute, $value, \Closure $fail) use ($get) {
+                                        $startDate = $get('start_date');
+                                        if ($startDate && $value && $value < $startDate) {
+                                            $fail('La fecha de fin no puede ser menor que la fecha de inicio.');
+                                        }
+                                    };
+                                },
+                            ])
+                            ->helperText('La fecha de fin debe ser igual o posterior a la fecha actual'),
                         Forms\Components\TextInput::make('max_votes')
                             ->numeric()
                             ->minValue(1)
@@ -59,8 +81,10 @@ class SurveyResource extends Resource
                             ->schema([
                                 Forms\Components\TextInput::make('text')
                                     ->required()
+                                    ->minLength(3)
                                     ->maxLength(255)
-                                    ->label('Pregunta'),
+                                    ->label('Pregunta')
+                                    ->helperText('Mínimo 3 caracteres'),
                                 Forms\Components\Select::make('type')
                                     ->options([
                                         'single' => 'Opción Única',
@@ -83,12 +107,31 @@ class SurveyResource extends Resource
                                             ->required()
                                             ->maxLength(255)
                                             ->label('Respuesta'),
+                                        Forms\Components\Toggle::make('is_other')
+                                            ->label('¿Es opción "Otro"?')
+                                            ->helperText('Habilita un campo de texto libre para el usuario')
+                                            ->live()
+                                            ->afterStateUpdated(function (Forms\Set $set, $state, Forms\Get $get) {
+                                                if ($state) {
+                                                    // Si se activa el toggle y el campo de texto está vacío o es genérico
+                                                    $currentText = $get('text');
+                                                    if (empty($currentText) || $currentText === 'Otro' || $currentText === 'Otra') {
+                                                        $set('text', 'Otro (especificar)');
+                                                    }
+                                                } else {
+                                                    // Si se desactiva el toggle y el texto es el predeterminado
+                                                    $currentText = $get('text');
+                                                    if ($currentText === 'Otro (especificar)') {
+                                                        $set('text', 'Otro');
+                                                    }
+                                                }
+                                            }),
                                         Forms\Components\TextInput::make('order')
                                             ->numeric()
                                             ->default(0)
                                             ->label('Orden'),
                                     ])
-                                    ->columns(2)
+                                    ->columns(3)
                                     ->label('Respuestas'),
                             ])
                             ->columns(2)

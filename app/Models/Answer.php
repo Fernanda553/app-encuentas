@@ -16,11 +16,13 @@ class Answer extends Model
         'question_id',
         'order',
         'vote_count',
+        'is_other',
     ];
 
     protected $casts = [
         'order' => 'integer',
         'vote_count' => 'integer',
+        'is_other' => 'boolean',
     ];
 
     public function question(): BelongsTo

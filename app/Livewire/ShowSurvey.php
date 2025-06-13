@@ -3,8 +3,10 @@
 namespace App\Livewire;
 
 use App\Models\Survey;
+use App\Models\CustomAnswer;
 use App\Events\VoteCasted;
 use App\Jobs\ProcessVote;
+use App\Jobs\ProcessVoteWithCustomAnswer;
 use Livewire\Component;
 use Illuminate\Support\Facades\Cache;
 
@@ -12,6 +14,7 @@ class ShowSurvey extends Component
 {
     public Survey $survey;
     public array $selectedAnswers = [];
+    public array $customAnswers = [];
     public bool $showResults = false;
     public bool $hasVoted = false;
     public ?string $error = null;
@@ -48,6 +51,7 @@ class ShowSurvey extends Component
                     return [
                         'id' => $answer->id,
                         'text' => $answer->text,
+                        'is_other' => $answer->is_other,
                         'votes' => $answer->vote_count,
                         'percentage' => $totalVotes > 0 ? round(($answer->vote_count / $totalVotes) * 100) : 0,
                     ];
@@ -68,20 +72,43 @@ class ShowSurvey extends Component
             return;
         }
 
+        // Validar respuestas "Otro" que requieren texto personalizado
+        if (!$this->validateOtherAnswers()) {
+            return;
+        }
+
         $sessionId = session()->getId();
         $ipAddress = request()->ip();
 
-        foreach ($this->selectedAnswers as $questionId => $answerIds) {
-            if (empty($answerIds)) {
+        foreach ($this->selectedAnswers as $questionId => $answers) {
+            if (empty($answers)) {
                 continue;
             }
 
-            if (!is_array($answerIds)) {
-                $answerIds = [$answerIds];
+            // Para preguntas de opción única (radio buttons)
+            if (!is_array($answers)) {
+                $answerId = $answers;
+                $customText = $this->customAnswers[$questionId] ?? null;
+                
+                if ($customText) {
+                    ProcessVoteWithCustomAnswer::dispatch($answerId, $ipAddress, $sessionId, $customText);
+                } else {
+                    ProcessVote::dispatch($answerId, $ipAddress, $sessionId);
+                }
+                continue;
             }
 
-            foreach ($answerIds as $answerId) {
-                ProcessVote::dispatch($answerId, $ipAddress, $sessionId);
+            // Para preguntas de opción múltiple (checkboxes)
+            foreach ($answers as $answerId => $isSelected) {
+                if ($isSelected) {
+                    $customText = $this->customAnswers[$questionId][$answerId] ?? null;
+                    
+                    if ($customText) {
+                        ProcessVoteWithCustomAnswer::dispatch($answerId, $ipAddress, $sessionId, $customText);
+                    } else {
+                        ProcessVote::dispatch($answerId, $ipAddress, $sessionId);
+                    }
+                }
             }
         }
 
@@ -98,6 +125,61 @@ class ShowSurvey extends Component
     public function handleVoteCasted($data)
     {
         $this->loadResults();
+    }
+
+    private function validateOtherAnswers(): bool
+    {
+        foreach ($this->selectedAnswers as $questionId => $answers) {
+            if (empty($answers)) {
+                continue;
+            }
+
+            $question = collect($this->questions)->firstWhere('id', $questionId);
+            if (!$question) {
+                continue;
+            }
+
+            // Para preguntas de opción única (radio buttons)
+            if (!is_array($answers)) {
+                $answerId = $answers;
+                $answer = collect($question['answers'])->firstWhere('id', $answerId);
+                
+                if ($answer && $answer['is_other']) {
+                    $customText = $this->customAnswers[$questionId] ?? '';
+                    if (empty(trim($customText))) {
+                        $this->error = 'Por favor, especifique su respuesta para la opción "' . $answer['text'] . '".';
+                        return false;
+                    }
+                    if (strlen(trim($customText)) < 3) {
+                        $this->error = 'Su respuesta personalizada debe tener al menos 3 caracteres.';
+                        return false;
+                    }
+                }
+                continue;
+            }
+
+            // Para preguntas de opción múltiple (checkboxes)
+            foreach ($answers as $answerId => $isSelected) {
+                if (!$isSelected) {
+                    continue;
+                }
+
+                $answer = collect($question['answers'])->firstWhere('id', $answerId);
+                if ($answer && $answer['is_other']) {
+                    $customText = $this->customAnswers[$questionId][$answerId] ?? '';
+                    if (empty(trim($customText))) {
+                        $this->error = 'Por favor, especifique su respuesta para la opción "' . $answer['text'] . '".';
+                        return false;
+                    }
+                    if (strlen(trim($customText)) < 3) {
+                        $this->error = 'Su respuesta personalizada debe tener al menos 3 caracteres.';
+                        return false;
+                    }
+                }
+            }
+        }
+
+        return true;
     }
 
     public function render()

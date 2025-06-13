@@ -40,27 +40,55 @@
                             @if($question['type'] === 'single')
                                 <div class="space-y-3">
                                     @foreach($question['answers'] as $answer)
-                                        <label class="flex items-center p-3 bg-slate-800/60 rounded-lg border border-cyan-400/10 hover:border-cyan-400 transition-colors duration-200 cursor-pointer">
-                                            <input type="radio" 
-                                                   name="selectedAnswers[{{ $question['id'] }}]" 
-                                                   wire:model="selectedAnswers.{{ $question['id'] }}"
-                                                   value="{{ $answer['id'] }}"
-                                                   class="h-4 w-4 text-cyan-400 focus:ring-cyan-500 bg-slate-900 border-slate-700">
-                                            <span class="ml-3 text-slate-100">{{ $answer['text'] }}</span>
-                                        </label>
+                                        <div>
+                                            <label class="flex items-center p-3 bg-slate-800/60 rounded-lg border border-cyan-400/10 hover:border-cyan-400 transition-colors duration-200 cursor-pointer">
+                                                <input type="radio"
+                                                       name="selectedAnswers[{{ $question['id'] }}]"
+                                                       wire:model.live="selectedAnswers.{{ $question['id'] }}"
+                                                       value="{{ $answer['id'] }}"
+                                                       class="h-4 w-4 text-cyan-400 focus:ring-cyan-500 bg-slate-900 border-slate-700">
+                                                <span class="ml-3 text-slate-100">{{ $answer['text'] }}</span>
+                                            </label>
+                                            @if($answer['is_other'] && isset($selectedAnswers[$question['id']]) && $selectedAnswers[$question['id']] == $answer['id'])
+                                                <div class="mt-2 ml-7">
+                                                    <label class="block text-sm font-medium text-cyan-300 mb-1">
+                                                        Especifique su respuesta <span class="text-pink-400">*</span>
+                                                    </label>
+                                                    <input type="text"
+                                                           wire:model="customAnswers.{{ $question['id'] }}"
+                                                           placeholder="Escriba su respuesta aquí (mínimo 3 caracteres)..."
+                                                           required
+                                                           class="w-full px-3 py-2 bg-slate-700 border border-cyan-400/30 rounded-lg text-slate-100 placeholder-slate-400 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400">
+                                                </div>
+                                            @endif
+                                        </div>
                                     @endforeach
                                 </div>
                             @else
                                 <div class="space-y-3">
                                     @foreach($question['answers'] as $answer)
-                                        <label class="flex items-center p-3 bg-slate-800/60 rounded-lg border border-cyan-400/10 hover:border-cyan-400 transition-colors duration-200 cursor-pointer">
-                                            <input type="checkbox" 
-                                                   name="selectedAnswers[{{ $question['id'] }}][]" 
-                                                   wire:model="selectedAnswers.{{ $question['id'] }}"
-                                                   value="{{ $answer['id'] }}"
-                                                   class="h-4 w-4 text-cyan-400 focus:ring-cyan-500 bg-slate-900 border-slate-700">
-                                            <span class="ml-3 text-slate-100">{{ $answer['text'] }}</span>
-                                        </label>
+                                        <div>
+                                            <label class="flex items-center p-3 bg-slate-800/60 rounded-lg border border-cyan-400/10 hover:border-cyan-400 transition-colors duration-200 cursor-pointer">
+                                                <input type="checkbox"
+                                                       name="selectedAnswers[{{ $question['id'] }}][{{ $answer['id'] }}]"
+                                                       wire:model.live="selectedAnswers.{{ $question['id'] }}.{{ $answer['id'] }}"
+                                                       value="{{ $answer['id'] }}"
+                                                       class="h-4 w-4 text-cyan-400 focus:ring-cyan-500 bg-slate-900 border-slate-700">
+                                                <span class="ml-3 text-slate-100">{{ $answer['text'] }}</span>
+                                            </label>
+                                            @if($answer['is_other'] && isset($selectedAnswers[$question['id']][$answer['id']]) && $selectedAnswers[$question['id']][$answer['id']])
+                                                <div class="mt-2 ml-7">
+                                                    <label class="block text-sm font-medium text-cyan-300 mb-1">
+                                                        Especifique su respuesta <span class="text-pink-400">*</span>
+                                                    </label>
+                                                    <input type="text"
+                                                           wire:model="customAnswers.{{ $question['id'] }}.{{ $answer['id'] }}"
+                                                           placeholder="Escriba su respuesta aquí (mínimo 3 caracteres)..."
+                                                           required
+                                                           class="w-full px-3 py-2 bg-slate-700 border border-cyan-400/30 rounded-lg text-slate-100 placeholder-slate-400 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400">
+                                                </div>
+                                            @endif
+                                        </div>
                                     @endforeach
                                 </div>
                             @endif
@@ -68,7 +96,7 @@
                     @endforeach
 
                     <div class="flex justify-center">
-                        <button type="submit" 
+                        <button type="submit"
                                 class="inline-flex items-center px-8 py-3 border border-cyan-400/30 text-base font-bold rounded-lg shadow-lg text-white bg-gradient-to-r from-cyan-400 via-blue-500 to-fuchsia-500 hover:from-fuchsia-500 hover:to-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-400/60 transition-all duration-200 animate-neon-glow">
                             <svg class="w-5 h-5 mr-2 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>

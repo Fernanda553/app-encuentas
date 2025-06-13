@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Validation\ValidationException;
 
 class Question extends Model
 {
@@ -25,6 +26,20 @@ class Question extends Model
         'allow_multiple_answers' => 'boolean',
         'order' => 'integer',
     ];
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::saving(function ($question) {
+            // Validar longitud mínima del texto de la pregunta
+            if ($question->text && strlen($question->text) < 3) {
+                throw ValidationException::withMessages([
+                    'text' => 'El texto de la pregunta debe tener al menos 3 caracteres.'
+                ]);
+            }
+        });
+    }
 
     public function survey(): BelongsTo
     {

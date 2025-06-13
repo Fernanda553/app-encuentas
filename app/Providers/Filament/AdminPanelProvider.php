@@ -27,6 +27,33 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
+            ->brandName('App Encuestas')
+            ->renderHook(
+                'panels::head.end',
+                fn () => '<script>
+                    document.addEventListener("DOMContentLoaded", function() {
+                        // Buscar el elemento del brand y hacerlo clickeable
+                        const brandElement = document.querySelector(".fi-logo, [data-slot=\'logo\'], .fi-sidebar-header");
+                        if (brandElement) {
+                            brandElement.style.cursor = "pointer";
+                            brandElement.addEventListener("click", function() {
+                                window.location.href = "/";
+                            });
+                        }
+                        
+                        // También buscar por texto "App Encuestas"
+                        const textElements = document.querySelectorAll("*");
+                        textElements.forEach(el => {
+                            if (el.textContent.trim() === "App Encuestas" && el.children.length === 0) {
+                                el.style.cursor = "pointer";
+                                el.addEventListener("click", function() {
+                                    window.location.href = "/";
+                                });
+                            }
+                        });
+                    });
+                </script>'
+            )
             ->colors([
                 'primary' => Color::Amber,
             ])
